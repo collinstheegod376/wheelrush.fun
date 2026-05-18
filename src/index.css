@@ -53,11 +53,12 @@ body {
 
 @media (min-width: 768px) {
   #root {
-    max-width: 1200px;
-    height: 90vh;
-    border-radius: 24px;
+    max-width: none;
+    width: 100vw;
+    height: 100vh;
+    border-radius: 0;
+    margin: 0;
     flex-direction: row;
-    overflow: hidden;
   }
 }
 
@@ -153,26 +154,23 @@ body {
   display: flex;
   flex-direction: column;
   background: var(--white);
-  border-right: 1px solid #e2e8f0;
   z-index: 100;
-}
-
-@media (max-width: 767px) {
-  .app-sidebar {
-    width: 100%;
-    order: 2;
-    border-right: none;
-    border-top: 1px solid #e2e8f0;
-    position: sticky;
-    bottom: 0;
-  }
+  width: 100%;
+  order: 2;
+  border-top: 1px solid #e2e8f0;
+  position: sticky;
+  bottom: 0;
 }
 
 @media (min-width: 768px) {
   .app-sidebar {
-    width: 250px;
-    height: 100%;
-    padding: 24px;
+    width: 280px;
+    height: 100vh;
+    border-top: none;
+    border-right: 1px solid #e2e8f0;
+    position: relative;
+    order: 0;
+    padding-top: 32px;
   }
 }
 
@@ -186,8 +184,8 @@ body {
   .nav-menu {
     flex-direction: column;
     gap: 16px;
-    padding: 0;
-    margin-top: 40px;
+    padding: 0 16px;
+    margin-top: 32px;
   }
 }
 
@@ -209,9 +207,13 @@ body {
 @media (min-width: 768px) {
   .nav-item {
     flex-direction: row;
-    padding: 16px;
+    padding: 16px 24px;
     font-size: 18px;
     justify-content: flex-start;
+  }
+  .nav-icon {
+    margin-right: 16px;
+    margin-bottom: 0;
   }
 }
 
@@ -239,6 +241,13 @@ body {
   overflow-y: auto;
   position: relative;
   background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+  padding-bottom: 80px; /* space for bottom nav on mobile */
+}
+
+@media (min-width: 768px) {
+  .app-main {
+    padding-bottom: 0;
+  }
 }
 
 .top-bar {

@@ -11,16 +11,15 @@ type UserStats = {
   losses: number;
 };
 
-// Outcomes - replacing one $500k with -$1B
 const OUTCOMES = [
-  { label: '$10B', value: 10000000000, color: '#bbf7d0', textColor: '#166534', icon: '🏆' },
-  { label: 'Loss', value: -1, color: '#1e293b', textColor: '#ef4444', icon: '💀' },
-  { label: '$500k', value: 500000, color: '#f8fafc', textColor: '#0f172a', icon: '' },
-  { label: '$1M', value: 1000000, color: '#fef08a', textColor: '#0f172a', icon: '' },
-  { label: '$10M', value: 10000000, color: '#f8fafc', textColor: '#0f172a', icon: '' },
-  { label: '$100M', value: 100000000, color: '#fef08a', textColor: '#0f172a', icon: '' },
-  { label: '$1B', value: 1000000000, color: '#f8fafc', textColor: '#0f172a', icon: '' },
-  { label: '-$1B', value: -1000000000, color: '#fee2e2', textColor: '#ef4444', icon: '📉' },
+  { label: '$10B', value: 10000000000, color: '#bbf7d0', textColor: '#166534', icon: '🏆', weight: 0.5 },
+  { label: 'Loss', value: -1, color: '#1e293b', textColor: '#ef4444', icon: '💀', weight: 20 },
+  { label: '$500k', value: 500000, color: '#f8fafc', textColor: '#0f172a', icon: '', weight: 20 },
+  { label: '$1M', value: 1000000, color: '#fef08a', textColor: '#0f172a', icon: '', weight: 20 },
+  { label: '$10M', value: 10000000, color: '#f8fafc', textColor: '#0f172a', icon: '', weight: 15 },
+  { label: '$100M', value: 100000000, color: '#fef08a', textColor: '#0f172a', icon: '', weight: 10 },
+  { label: '$1B', value: 1000000000, color: '#f8fafc', textColor: '#0f172a', icon: '', weight: 4.5 },
+  { label: '-$1B', value: -1000000000, color: '#fee2e2', textColor: '#ef4444', icon: '📉', weight: 10 },
 ];
 
 export default function App() {
@@ -196,8 +195,18 @@ export default function App() {
       if (ticks > 15) clearInterval(tickInterval);
     }, 200);
 
-    // Select random outcome strictly from 0 to 7. All 8 outcomes are equally possible.
-    const randomIndex = Math.floor(Math.random() * OUTCOMES.length);
+    // Select random outcome using weighted probability
+    const totalWeight = OUTCOMES.reduce((sum, item) => sum + item.weight, 0);
+    let randomNum = Math.random() * totalWeight;
+    let randomIndex = 0;
+    
+    for (let i = 0; i < OUTCOMES.length; i++) {
+      if (randomNum < OUTCOMES[i].weight) {
+        randomIndex = i;
+        break;
+      }
+      randomNum -= OUTCOMES[i].weight;
+    }
     const selectedOutcome = OUTCOMES[randomIndex];
 
     // Math for wheel rotation:
@@ -231,8 +240,8 @@ export default function App() {
       let newLosses = user.losses;
 
       if (selectedOutcome.value === -1) {
-        // Special case: "Loss" sets balance to 0 or subtracts a massive penalty. Let's make it wipe balance.
-        newBalance = 0;
+        // Special case: "Loss" sets positive balance to 0, but leaves debt as is (no free bailouts)
+        if (newBalance > 0) newBalance = 0;
         newLosses += 1;
         playSound('loss');
       } else if (selectedOutcome.value < 0) {
@@ -332,8 +341,8 @@ export default function App() {
   return (
     <>
       <div className="app-sidebar">
-        <div style={{ padding: '0 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <h1 className="text-gradient" style={{ fontSize: '28px', fontWeight: 900, display: window.innerWidth > 768 ? 'block' : 'none' }}>Wheel Rush</h1>
+        <div style={{ padding: '0 16px', display: window.innerWidth > 768 ? 'flex' : 'none', alignItems: 'center', justifyContent: 'center', marginBottom: '24px' }}>
+          <h1 className="text-gradient" style={{ fontSize: '32px', fontWeight: 900 }}>Wheel Rush</h1>
         </div>
         <div className="nav-menu">
           <button className={`nav-item ${activeTab === 'home' ? 'active' : ''}`} onClick={() => setActiveTab('home')}>
