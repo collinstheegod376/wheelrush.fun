@@ -12,12 +12,12 @@ type UserStats = {
 };
 
 const OUTCOMES = [
-  { label: '$10B',  value: 10000000000,  color: '#bbf7d0', textColor: '#166534', icon: '🏆', weight: 0.5 },
-  { label: 'Loss',  value: -1,           color: '#1e293b', textColor: '#ef4444', icon: '💀', weight: 7 },
-  { label: '$500k', value: 500000,        color: '#f8fafc', textColor: '#0f172a', icon: '',   weight: 26 },
-  { label: '$1M',   value: 1000000,       color: '#fef08a', textColor: '#0f172a', icon: '',   weight: 26 },
-  { label: '$10M',  value: 10000000,      color: '#f8fafc', textColor: '#0f172a', icon: '',   weight: 20 },
-  { label: '$100M', value: 100000000,     color: '#fef08a', textColor: '#0f172a', icon: '',   weight: 20.45 },
+  { label: '$10B',  value: 10000000000,  color: '#1d4ed8', textColor: '#ffffff', icon: '🏆', weight: 0.5 },
+  { label: 'Loss',  value: -1,           color: '#0f172a', textColor: '#ef4444', icon: '💀', weight: 7 },
+  { label: '$500k', value: 500000,        color: '#eff6ff', textColor: '#1e293b', icon: '',   weight: 26 },
+  { label: '$1M',   value: 1000000,       color: '#bfdbfe', textColor: '#1e3a8a', icon: '',   weight: 26 },
+  { label: '$10M',  value: 10000000,      color: '#dbeafe', textColor: '#1e293b', icon: '',   weight: 20 },
+  { label: '$100M', value: 100000000,     color: '#93c5fd', textColor: '#1e3a8a', icon: '',   weight: 20.45 },
   { label: '-$1B',  value: -1000000000,   color: '#fee2e2', textColor: '#ef4444', icon: '📉', weight: 0.05 },
 ];
 
@@ -411,7 +411,7 @@ export default function App() {
 
                     return (
                       <g key={i}>
-                        <path d={d} fill={outcome.color} stroke="#f7a528" strokeWidth="0.5" />
+                        <path d={d} fill={outcome.color} stroke="#2563eb" strokeWidth="0.5" />
                         <text 
                           x={textX} 
                           y={textY} 
