@@ -12,14 +12,13 @@ type UserStats = {
 };
 
 const OUTCOMES = [
-  { label: '$10B', value: 10000000000, color: '#bbf7d0', textColor: '#166534', icon: '🏆', weight: 0.5 },
-  { label: 'Loss', value: -1, color: '#1e293b', textColor: '#ef4444', icon: '💀', weight: 7 },
-  { label: '$500k', value: 500000, color: '#f8fafc', textColor: '#0f172a', icon: '', weight: 25 },
-  { label: '$1M', value: 1000000, color: '#fef08a', textColor: '#0f172a', icon: '', weight: 25 },
-  { label: '$10M', value: 10000000, color: '#f8fafc', textColor: '#0f172a', icon: '', weight: 15 },
-  { label: '$100M', value: 100000000, color: '#fef08a', textColor: '#0f172a', icon: '', weight: 10 },
-  { label: '$1B', value: 1000000000, color: '#f8fafc', textColor: '#0f172a', icon: '', weight: 7.5 },
-  { label: '-$1B', value: -1000000000, color: '#fee2e2', textColor: '#ef4444', icon: '📉', weight: 10 },
+  { label: '$10B',  value: 10000000000,  color: '#bbf7d0', textColor: '#166534', icon: '🏆', weight: 0.5 },
+  { label: 'Loss',  value: -1,           color: '#1e293b', textColor: '#ef4444', icon: '💀', weight: 7 },
+  { label: '$500k', value: 500000,        color: '#f8fafc', textColor: '#0f172a', icon: '',   weight: 26 },
+  { label: '$1M',   value: 1000000,       color: '#fef08a', textColor: '#0f172a', icon: '',   weight: 26 },
+  { label: '$10M',  value: 10000000,      color: '#f8fafc', textColor: '#0f172a', icon: '',   weight: 20 },
+  { label: '$100M', value: 100000000,     color: '#fef08a', textColor: '#0f172a', icon: '',   weight: 20.45 },
+  { label: '-$1B',  value: -1000000000,   color: '#fee2e2', textColor: '#ef4444', icon: '📉', weight: 0.05 },
 ];
 
 export default function App() {
@@ -40,7 +39,6 @@ export default function App() {
   // Settings
   const [bgMusic, setBgMusic] = useState(true);
   const [sfx, setSfx] = useState(true);
-  const [track, setTrack] = useState('unbeknownst');
   const audioContextRef = useRef<AudioContext | null>(null);
 
   // Mock Leaderboard (Falls back if Supabase is not setup)
@@ -140,7 +138,7 @@ export default function App() {
   };
 
   // Sound Effects Generator using Web Audio API
-  const playSound = (type: 'tick' | 'win' | 'loss') => {
+  const playSound = (type: 'tick' | 'win' | 'loss' | 'mega') => {
     if (!sfx) return;
     try {
       if (!audioContextRef.current) {
@@ -455,7 +453,7 @@ export default function App() {
                   <div className="lb-info">
                     <div className="lb-name">{item.email ? item.email.split('@')[0] : 'Unknown'}</div>
                   </div>
-                  <div className="lb-balance">{formatMoney(item.balance)}</div>
+                  <div className="lb-balance" style={{ marginLeft: 'auto', paddingLeft: '12px' }}>{formatMoney(item.balance)}</div>
                 </div>
               ))}
             </div>
@@ -541,13 +539,13 @@ export default function App() {
           <div className="popup-content">
             {popup.type === 'win' ? (
               <>
-                <div className="win-title">{popup.amount >= 10000000000 ? 'MEGA JACKPOT' : 'WINNER!'}</div>
+                <div className="win-title">{popup.amount >= 10000000000 ? '👑 MEGA JACKPOT' : '🎉 WINNER!'}</div>
                 <div className="win-amount">+{formatMoney(popup.amount)}</div>
                 <button className="btn btn-claim" onClick={() => setPopup({...popup, show: false})}>CLAIM REWARD</button>
               </>
             ) : (
               <>
-                <div className="loss-title">{popup.label === 'YOU LOST' ? 'BANKRUPT' : 'LOSS'}</div>
+                <div className="loss-title">{popup.label === 'YOU LOST' ? '💀 BANKRUPT' : '📉 LOSS'}</div>
                 <div className="loss-amount">{popup.label === 'YOU LOST' ? 'BALANCE CLEARED' : formatMoney(popup.amount)}</div>
                 <button className="btn btn-try-again" onClick={() => setPopup({...popup, show: false})}>TRY AGAIN</button>
               </>
