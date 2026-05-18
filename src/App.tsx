@@ -285,7 +285,7 @@ export default function App() {
       <div className="auth-wrapper animate-fade-in">
         <div className="auth-card">
           <div style={{ textAlign: 'center', marginBottom: '32px' }}>
-            <h1 className="text-gradient" style={{ fontSize: '36px', fontWeight: 900 }}>Spinna</h1>
+            <h1 className="text-gradient" style={{ fontSize: '36px', fontWeight: 900 }}>Wheel Rush</h1>
             <p style={{ color: 'var(--text-light)', marginTop: '8px' }}>Sign in to start spinning</p>
           </div>
           {authError && (
@@ -333,7 +333,7 @@ export default function App() {
     <>
       <div className="app-sidebar">
         <div style={{ padding: '0 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <h1 className="text-gradient" style={{ fontSize: '28px', fontWeight: 900, display: window.innerWidth > 768 ? 'block' : 'none' }}>Spinna</h1>
+          <h1 className="text-gradient" style={{ fontSize: '28px', fontWeight: 900, display: window.innerWidth > 768 ? 'block' : 'none' }}>Wheel Rush</h1>
         </div>
         <div className="nav-menu">
           <button className={`nav-item ${activeTab === 'home' ? 'active' : ''}`} onClick={() => setActiveTab('home')}>
@@ -424,9 +424,9 @@ export default function App() {
               {displayLeaderboard.map(item => (
                 <div key={item.email} className={`lb-item ${item.email === user.email ? 'current-user' : ''}`}>
                   <div className="lb-rank">#{item.rank}</div>
-                  <div className="lb-avatar">{item.email[0].toUpperCase()}</div>
+                  <div className="lb-avatar">{item.email ? item.email[0].toUpperCase() : '?'}</div>
                   <div className="lb-info">
-                    <div className="lb-name">{item.email.split('@')[0]}</div>
+                    <div className="lb-name">{item.email ? item.email.split('@')[0] : 'Unknown'}</div>
                   </div>
                   <div className="lb-balance">{formatMoney(item.balance)}</div>
                 </div>
@@ -439,9 +439,9 @@ export default function App() {
           <div className="profile-content animate-fade-in">
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginBottom: '32px' }}>
               <div style={{ width: '80px', height: '80px', borderRadius: '50%', background: '#e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '32px', marginBottom: '16px', boxShadow: '0 8px 16px rgba(0,0,0,0.1)' }}>
-                {user.email[0].toUpperCase()}
+                {user.email ? user.email[0].toUpperCase() : '?'}
               </div>
-              <div style={{ fontSize: '24px', fontWeight: 800 }}>{user.email.split('@')[0]}</div>
+              <div style={{ fontSize: '24px', fontWeight: 800 }}>{user.email ? user.email.split('@')[0] : 'Unknown'}</div>
             </div>
 
             <div className="stats-grid">
