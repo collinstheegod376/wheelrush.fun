@@ -13,12 +13,12 @@ type UserStats = {
 
 const OUTCOMES = [
   { label: '$10B', value: 10000000000, color: '#bbf7d0', textColor: '#166534', icon: '🏆', weight: 0.5 },
-  { label: 'Loss', value: -1, color: '#1e293b', textColor: '#ef4444', icon: '💀', weight: 20 },
-  { label: '$500k', value: 500000, color: '#f8fafc', textColor: '#0f172a', icon: '', weight: 20 },
-  { label: '$1M', value: 1000000, color: '#fef08a', textColor: '#0f172a', icon: '', weight: 20 },
+  { label: 'Loss', value: -1, color: '#1e293b', textColor: '#ef4444', icon: '💀', weight: 7 },
+  { label: '$500k', value: 500000, color: '#f8fafc', textColor: '#0f172a', icon: '', weight: 25 },
+  { label: '$1M', value: 1000000, color: '#fef08a', textColor: '#0f172a', icon: '', weight: 25 },
   { label: '$10M', value: 10000000, color: '#f8fafc', textColor: '#0f172a', icon: '', weight: 15 },
   { label: '$100M', value: 100000000, color: '#fef08a', textColor: '#0f172a', icon: '', weight: 10 },
-  { label: '$1B', value: 1000000000, color: '#f8fafc', textColor: '#0f172a', icon: '', weight: 4.5 },
+  { label: '$1B', value: 1000000000, color: '#f8fafc', textColor: '#0f172a', icon: '', weight: 7.5 },
   { label: '-$1B', value: -1000000000, color: '#fee2e2', textColor: '#ef4444', icon: '📉', weight: 10 },
 ];
 
@@ -31,6 +31,7 @@ export default function App() {
 
   const [activeTab, setActiveTab] = useState<'home' | 'leaderboard' | 'profile'>('home');
   const [showSettings, setShowSettings] = useState(false);
+  const [popup, setPopup] = useState<{show: boolean, type: 'win'|'loss', amount: number, label: string}>({show: false, type: 'win', amount: 0, label: ''});
   
   const [isSpinning, setIsSpinning] = useState(false);
   const [currentRotation, setCurrentRotation] = useState(0);
@@ -177,6 +178,15 @@ export default function App() {
         gain.gain.linearRampToValueAtTime(0, now + 0.4);
         osc.start(now);
         osc.stop(now + 0.4);
+      } else if (type === 'mega') {
+        osc.type = 'square';
+        osc.frequency.setValueAtTime(400, now);
+        osc.frequency.setValueAtTime(800, now + 0.2);
+        osc.frequency.setValueAtTime(1200, now + 0.4);
+        gain.gain.setValueAtTime(0.4, now);
+        gain.gain.linearRampToValueAtTime(0, now + 1.0);
+        osc.start(now);
+        osc.stop(now + 1.0);
       }
     } catch (e) {
       console.error('Audio play failed', e);
@@ -210,14 +220,18 @@ export default function App() {
     const selectedOutcome = OUTCOMES[randomIndex];
 
     // Math for wheel rotation:
-    // Wheel has 8 segments, 45 degrees each.
-    // Segment 0 is drawn from 0 to 45 deg, centered at 22.5.
-    // SVG is rotated -112.5 deg globally so Segment 0 is at 12 o'clock.
-    // To land on 'randomIndex', we want to rotate backwards by (randomIndex * 45) degrees relative to start.
     const segmentDegree = 360 / OUTCOMES.length;
     const extraSpins = 5 * 360; // 5 full spins minimum
     const offset = Math.random() * 30 - 15; // Random land inside the 45deg slice
-    const targetDegree = currentRotation + extraSpins + (360 - (randomIndex * segmentDegree)) + offset;
+    
+    // We want the final angle modulo 360 to exactly match the target segment.
+    const targetModulo = 360 - (randomIndex * segmentDegree);
+    const currentRemainder = currentRotation % 360;
+    
+    let degreesToSpin = targetModulo - currentRemainder;
+    if (degreesToSpin <= 0) degreesToSpin += 360; // Always spin forward
+    
+    const targetDegree = currentRotation + degreesToSpin + extraSpins + offset;
 
     const wheel = wheelRef.current;
     if (wheel) {
@@ -244,15 +258,19 @@ export default function App() {
         if (newBalance > 0) newBalance = 0;
         newLosses += 1;
         playSound('loss');
+        setPopup({ show: true, type: 'loss', amount: 0, label: 'YOU LOST' });
       } else if (selectedOutcome.value < 0) {
         // Negative value (like -$1B) subtracts from balance
         newBalance += selectedOutcome.value;
         newLosses += 1;
         playSound('loss');
+        setPopup({ show: true, type: 'loss', amount: selectedOutcome.value, label: selectedOutcome.label });
       } else {
         // Positive win
         newBalance += selectedOutcome.value;
-        playSound('win');
+        if (selectedOutcome.value >= 1000000000) playSound('mega');
+        else playSound('win');
+        setPopup({ show: true, type: 'win', amount: selectedOutcome.value, label: selectedOutcome.label });
       }
 
       const updatedUser = {
@@ -330,8 +348,8 @@ export default function App() {
   }
 
   // Inject user into leaderboard for current display
-  const displayLeaderboard = [...leaderboard];
-  if (!displayLeaderboard.find(l => l.email === user.email)) {
+  let displayLeaderboard = [...leaderboard].filter(l => l.balance >= 0);
+  if (user.balance >= 0 && !displayLeaderboard.find(l => l.email === user.email)) {
     displayLeaderboard.push({ rank: 999, email: user.email, balance: user.balance });
   }
   displayLeaderboard.sort((a, b) => b.balance - a.balance).forEach((item, index) => {
@@ -505,17 +523,35 @@ export default function App() {
               </div>
             </div>
 
-            <div style={{ marginBottom: '24px' }}>
-              <h3 style={{ fontSize: '14px', textTransform: 'uppercase', color: 'var(--text-light)', marginBottom: '8px' }}>Select Track</h3>
-              {['unbeknownst', 'titanium', 'damn'].map(t => (
-                <div key={t} className={`track-item ${track === t ? 'active' : ''}`} onClick={() => setTrack(t)}>
-                  <span style={{ fontWeight: 700, textTransform: 'capitalize' }}>{t}</span>
-                  {track === t && <span style={{ color: 'var(--primary-color)', fontWeight: 900 }}>✓</span>}
-                </div>
-              ))}
-            </div>
-
             <button className="btn" style={{ width: '100%', background: '#fee2e2', color: '#ef4444' }} onClick={handleLogout}>Sign Out</button>
+          </div>
+        </div>
+      )}
+
+      {popup.show && (
+        <div className={`popup-overlay ${popup.type === 'win' ? 'popup-win' : 'popup-loss'} ${popup.amount >= 10000000000 ? 'shake-screen' : ''}`}>
+          {popup.type === 'win' && Array.from({length: 20}).map((_, i) => (
+            <div key={i} className="confetti-piece" style={{
+              left: `${Math.random() * 100}%`,
+              top: `-10%`,
+              animation: `slideUp ${Math.random() * 2 + 1}s ease-in infinite`,
+              backgroundColor: ['#ffd166', '#2ed573', '#ff9f1c', '#ffffff'][Math.floor(Math.random()*4)]
+            }} />
+          ))}
+          <div className="popup-content">
+            {popup.type === 'win' ? (
+              <>
+                <div className="win-title">{popup.amount >= 10000000000 ? 'MEGA JACKPOT' : 'WINNER!'}</div>
+                <div className="win-amount">+{formatMoney(popup.amount)}</div>
+                <button className="btn btn-claim" onClick={() => setPopup({...popup, show: false})}>CLAIM REWARD</button>
+              </>
+            ) : (
+              <>
+                <div className="loss-title">{popup.label === 'YOU LOST' ? 'BANKRUPT' : 'LOSS'}</div>
+                <div className="loss-amount">{popup.label === 'YOU LOST' ? 'BALANCE CLEARED' : formatMoney(popup.amount)}</div>
+                <button className="btn btn-try-again" onClick={() => setPopup({...popup, show: false})}>TRY AGAIN</button>
+              </>
+            )}
           </div>
         </div>
       )}
