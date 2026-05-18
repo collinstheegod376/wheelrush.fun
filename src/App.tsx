@@ -421,7 +421,7 @@ export default function App() {
                           fontFamily="Outfit"
                           textAnchor="middle" 
                           alignmentBaseline="middle"
-                          transform={`rotate(${midAngle + 90}, ${textX}, ${textY})`}
+                          transform={`rotate(${((midAngle + 90) % 360) > 180 ? midAngle - 90 : midAngle + 90}, ${textX}, ${textY})`}
                         >
                           {outcome.icon && <tspan x={textX} dy="-3">{outcome.icon}</tspan>}
                           <tspan x={textX} dy={outcome.icon ? "5" : "0"}>{outcome.label}</tspan>
