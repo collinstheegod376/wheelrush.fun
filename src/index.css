@@ -241,8 +241,11 @@ body {
   width: 100%;
   order: 2;
   border-top: 1px solid #e2e8f0;
-  position: sticky;
+  position: fixed;
   bottom: 0;
+  left: 0;
+  right: 0;
+  padding-bottom: env(safe-area-inset-bottom, 0px);
 }
 
 @media (min-width: 768px) {
@@ -260,7 +263,8 @@ body {
 .nav-menu {
   display: flex;
   justify-content: space-around;
-  padding: 12px;
+  padding: 8px 4px;
+  gap: 0;
 }
 
 @media (min-width: 768px) {
@@ -276,15 +280,17 @@ body {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 6px;
+  gap: 2px;
   background: none;
   border: none;
   cursor: pointer;
   color: var(--text-light);
   transition: all 0.3s;
-  padding: 8px 16px;
-  border-radius: 16px;
+  padding: 6px 8px;
+  border-radius: 12px;
   font-family: inherit;
+  flex: 1;
+  min-width: 0;
 }
 
 @media (min-width: 768px) {
@@ -306,12 +312,16 @@ body {
 }
 
 .nav-icon {
-  font-size: 24px;
+  font-size: 20px;
 }
 
 .nav-label {
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 700;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
 }
 @media (min-width: 768px) {
   .nav-label { font-size: 16px; }
@@ -324,7 +334,7 @@ body {
   overflow-y: auto;
   position: relative;
   background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
-  padding-bottom: 80px; /* space for bottom nav on mobile */
+  padding-bottom: 72px; /* space for fixed bottom nav on mobile */
 }
 
 @media (min-width: 768px) {
@@ -353,7 +363,8 @@ body {
   background: #eff6ff;
   border: 2px solid #2563eb;
   border-radius: 16px;
-  padding: 8px 24px;
+  padding: 6px 16px;
+  min-width: 0;
 }
 
 .balance-label {
@@ -364,9 +375,10 @@ body {
 }
 
 .balance-amount {
-  font-size: 24px;
+  font-size: clamp(18px, 5vw, 24px);
   font-weight: 900;
   color: #1d4ed8;
+  white-space: nowrap;
 }
 
 /* Home / Wheel */
@@ -752,15 +764,87 @@ input:checked + .slider:before { transform: translateX(22px); }
   opacity: 0;
 }
 
-/* ── iPhone XR (414×896) specific fix ── */
-@media only screen and (min-width: 414px) and (max-width: 414px) and (min-height: 800px) {
-  .wheel-section {
-    padding: 12px 24px;
-    justify-content: flex-start;
+/* ── Small phones (under 380px wide, e.g. iPhone SE, Galaxy S) ── */
+@media (max-width: 380px) {
+  .nav-menu {
+    padding: 6px 2px;
+  }
+  .nav-icon {
+    font-size: 18px;
+  }
+  .nav-label {
+    font-size: 10px;
+  }
+  .nav-item {
+    padding: 5px 4px;
+    gap: 1px;
+  }
+  .top-bar {
+    padding: 10px 12px;
+  }
+  .balance-badge {
+    padding: 4px 10px;
+  }
+  .balance-label {
+    font-size: 10px;
   }
   .wheel-container {
-    width: 290px;
-    height: 290px;
+    width: 250px;
+    height: 250px;
+    margin: 10px auto;
+  }
+  .wheel-section {
+    padding: 12px;
+  }
+  .spin-btn-large {
+    margin-top: 12px;
+    padding: 14px;
+    font-size: 18px;
+  }
+  .lb-list {
+    padding: 12px;
+  }
+  .lb-item {
+    padding: 10px 8px;
+  }
+  .lb-rank {
+    font-size: 16px;
+    width: 32px;
+    flex-shrink: 0;
+  }
+  .lb-avatar {
+    width: 32px;
+    height: 32px;
+    font-size: 14px;
+    margin-right: 8px;
+    flex-shrink: 0;
+  }
+  .lb-name {
+    font-size: 13px;
+  }
+  .lb-balance {
+    font-size: 13px;
+  }
+  .stat-card {
+    padding: 12px;
+  }
+  .stat-icon {
+    font-size: 22px;
+    margin-bottom: 4px;
+  }
+  .stat-value {
+    font-size: 16px;
+  }
+  .stat-title {
+    font-size: 11px;
+  }
+}
+
+/* ── Medium phones (381px - 414px) ── */
+@media (min-width: 381px) and (max-width: 480px) {
+  .wheel-container {
+    width: 280px;
+    height: 280px;
     margin: 12px auto;
   }
   .spin-btn-large {
@@ -768,11 +852,11 @@ input:checked + .slider:before { transform: translateX(22px); }
     padding: 16px;
     font-size: 20px;
   }
-  .balance-badge {
-    padding: 6px 16px;
-  }
-  .balance-amount {
-    font-size: 20px;
-  }
+}
+
+/* ── Loading dot animation ── */
+@keyframes dotPulse {
+  0%, 100% { opacity: 0.3; transform: scale(0.8); }
+  50% { opacity: 1; transform: scale(1.3); }
 }
 
