@@ -1,0 +1,71 @@
+Wheel Rush SEO Context
+
+Site type
+- React single-page web application
+- Free-to-play prize wheel / spin-to-win game
+- Uses Supabase for auth and profile data
+
+Current SEO files
+- `index.html`
+- `public/robots.txt`
+- `public/sitemap.xml`
+- `public/manifest.webmanifest` via Vite PWA
+
+Primary SEO goals
+- Rank for prize wheel and spin-to-win queries
+- Communicate that the game is free to play
+- Drive users to sign up and play
+- Improve social preview appearance when links are shared
+
+Current metadata
+- Title: Wheel Rush - Spin the Wheel & Win Billions | Free Online Casino Game
+- Meta description: Spin the Wheel Rush prize wheel to win virtual cash from $500K to $10 Billion. Free-to-play spin-to-win game with a global leaderboard.
+- Canonical: https://wheelrush.fun/
+- Robots: index, follow
+- OG/Twitter images point to `https://wheelrush.fun/icon.png`
+
+Structured data
+- `WebApplication` JSON-LD is embedded in `index.html`
+- Category: `GameApplication`
+- Genre: Casino
+- Offer price: 0 USD
+
+SEO risk areas
+- The app is an SPA, so search engines mainly rely on metadata and client rendering
+- `index.html` title and description must stay clean and uncorrupted
+- Open Graph and Twitter tags should match the visible branding
+- The OG image should be a proper social-share asset, not just the app icon if a better preview image exists
+
+Keyword direction
+- Wheel Rush
+- spin the wheel game
+- prize wheel game
+- spin to win
+- free online jackpot game
+- virtual rewards game
+- leaderboard game
+
+Recommended page intent
+- Homepage should explain the game in one sentence
+- Add a short explainer section if organic search is a priority
+- Keep copy aligned with "free virtual rewards" rather than cash gambling claims
+
+Technical checks
+- `public/robots.txt` allows crawling and points to sitemap
+- `public/sitemap.xml` currently lists the root URL only
+- PWA manifest is enabled and should not conflict with crawlable content
+- Canonical domain must match the deployed production URL
+
+Cross-check items
+- Confirm the title in `index.html` renders without encoding corruption
+- Confirm description length is reasonable for search snippets
+- Confirm social tags are present and point to a reachable image
+- Confirm `sitemap.xml` uses the current `lastmod`
+- Confirm the deployed hostname matches `canonical` and `og:url`
+
+Notes for future SEO work
+- If you add marketing pages, update sitemap and internal links
+- If you add FAQs, include them in HTML so search engines can read them
+- If you add a hero section, make sure it includes the primary keyword naturally
+- Avoid keyword stuffing; keep the language focused on free play and virtual rewards
+

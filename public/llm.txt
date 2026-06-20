@@ -1,0 +1,41 @@
+Wheel Rush SEO Handoff
+
+Primary keyword focus
+- wheel rush
+- spin to win
+- prize wheel game
+- free online casino game
+- jackpot wheel game
+
+Current SEO surface
+- `index.html`
+- `public/robots.txt`
+- `public/sitemap.xml`
+
+Important metadata
+- Title: Wheel Rush - Spin the Wheel & Win Billions | Free Online Casino Game
+- Description: Spin the Wheel Rush prize wheel to win virtual cash from $500K to $10 Billion. Free-to-play spin-to-win game with a global leaderboard.
+- Canonical: https://wheelrush.fun/
+- OG image: https://wheelrush.fun/icon.png
+
+Structured data
+- WebApplication schema is present in `index.html`
+- Application category is `GameApplication`
+
+Technical SEO notes
+- Single-page app served from `/`
+- Robots file allows crawling
+- Sitemap currently contains one URL
+- PWA manifest is enabled
+
+Content notes
+- The app is a free spin-to-win game with a leaderboard
+- Main user actions are signup, spin, leaderboard, profile, and settings
+- Best keyword targets are game intent and prize-wheel intent, not gambling intent
+
+Things to verify
+- Ensure the site title renders correctly in browsers and social previews
+- Make sure the OG image is publicly reachable
+- Confirm sitemap `lastmod` stays current
+- Ensure the deployed domain matches the canonical URL
+

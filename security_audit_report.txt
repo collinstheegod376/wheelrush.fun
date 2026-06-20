@@ -1,0 +1,54 @@
+WHEEL RUSH - SECURITY AUDIT REPORT
+Date: June 21, 2026
+Scan Type: Exploits, Logic Flaws, and Database Integrity
+
+---
+[HIGH] USERNAME COLLISION RISK REDUCED, BUT REQUIRES LIVE VERIFICATION
+---
+File: database.sql (Trigger: handle_new_user)
+Status: Fixed in schema rewrite
+Notes: New users now receive a username suffix derived from their UUID, which avoids deterministic collisions on common email prefixes. This should be verified in Supabase after running the migration.
+
+---
+[MEDIUM] SERVER-SIDE RATE LIMITING
+---
+File: database.sql (Function: spin_wheel)
+Status: Fixed in schema rewrite
+Notes: The spin function now checks `last_spin_at` and rejects spins during the cooldown window. Client-side cooldown remains a UX layer only.
+
+---
+[MEDIUM] NEGATIVE BALANCE BRICKING
+---
+File: database.sql (Function: spin_wheel)
+Status: Fixed in schema rewrite
+Notes: Negative outcomes now floor balance at zero instead of allowing indefinite negative balance states.
+
+---
+[LOW] TERMS OF SERVICE ENFORCEMENT
+---
+File: database.sql (Function: spin_wheel)
+Status: Fixed in schema rewrite
+Notes: The server now refuses spins unless `agreed_to_terms = true` for the authenticated profile.
+
+---
+[LOW] STORAGE ABUSE WITHIN OWN FOLDER
+---
+File: SettingsModal.tsx / database.sql
+Status: Partially mitigated
+Notes: Users are restricted to their own UUID folder, and the client enforces avatar file size/type limits. A determined user can still consume some quota within their own folder, but cannot affect other users' files.
+
+---
+VERIFIED SECURE COMPONENTS:
+---
+1. Atomic Transactions: `FOR UPDATE` still prevents race conditions and double-spending.
+2. Row Level Security (RLS): Profile visibility is restricted to authenticated owners.
+3. SQL Injection: RPC parameters and typed PostgreSQL functions prevent standard SQL injection attacks.
+4. Input Sanitization: Usernames are validated against a regex pattern (letters, numbers, underscores only) in `update_user_profile`.
+
+---
+VERIFICATION NOTES
+---
+- Run `database.sql` in Supabase before treating these fixes as active.
+- Confirm `spin_wheel()` executes only for authenticated users.
+- Confirm `update_user_profile()` rejects invalid usernames.
+- Confirm the profile trigger creates a unique username for two users with the same email prefix.
