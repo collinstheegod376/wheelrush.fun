@@ -1,0 +1,140 @@
+Wheel Rush Code Audit
+Date: 2026-06-20
+
+Scope
+- Reviewed application code under `src/`, `public/`, and build config files.
+- Focused on flaws, security concerns, and implementation improvements.
+
+Critical Flaws
+1. Supabase credentials are hardcoded in source.
+   - File: `src/supabase.ts`
+   - Risk: environment portability problems and accidental exposure of project configuration.
+   - Fix: move URL and anon key to environment variables.
+
+2. Client-side logic appears to control game outcomes.
+   - Files: `src/components/SpinWheel.tsx`, `src/App.tsx`
+   - Risk: users can tamper with browser-side code, inspect results, or manipulate spin behavior.
+   - Fix: generate and validate spin results server-side only.
+
+3. User balance, spin count, and losses are updated from the client.
+   - Files: `src/App.tsx`, `src/components/SettingsModal.tsx`, `src/components/SpinWheel.tsx`
+   - Risk: users can modify requests or call Supabase directly unless the database enforces strict rules.
+   - Fix: move sensitive state changes to server-side functions and add database-side authorization rules.
+
+4. Avatar uploads rely on the client without visible file validation.
+   - File: `src/components/SettingsModal.tsx`
+   - Risk: oversized uploads, unexpected file types, and storage abuse.
+   - Fix: validate file size and MIME type before upload, and enforce storage rules server-side.
+
+5. RPC endpoint is trusted without visible schema validation.
+   - File: `src/components/SpinWheel.tsx`
+   - Risk: malformed RPC responses could break gameplay or expose bad state.
+   - Fix: validate returned shape before using it in UI state.
+
+Security Improvements
+1. Add Row Level Security policies in Supabase.
+   - Files affected: all Supabase-backed flows
+   - Why: prevents users from reading or updating other accounts directly.
+
+2. Restrict storage bucket access.
+   - File: `src/components/SettingsModal.tsx`
+   - Why: prevents public abuse of the avatar bucket and reduces file-hosting risk.
+
+3. Move trusted game logic to a backend function.
+   - Files affected: spin flow and balance updates
+   - Why: prevents client manipulation of rewards, losses, and leaderboard ranking.
+
+4. Add input validation on auth and profile updates.
+   - Files: `src/components/AuthScreen.tsx`, `src/components/SettingsModal.tsx`
+   - Why: reduces malformed input, bad state, and avoidable auth or profile errors.
+
+5. Sanitize any future rich text or external content.
+   - Files affected: any modal or profile content that later accepts remote data
+   - Why: prevents XSS if content sources expand later.
+
+6. Avoid exposing production secrets in frontend bundles.
+   - File: `src/supabase.ts`
+   - Why: frontend environment variables are still public, but the app should not ship hardcoded credentials.
+
+7. Add rate limiting for auth and spin actions.
+   - Files affected: auth flow, spin flow
+   - Why: reduces brute-force login attempts and spam spins.
+
+Implementation Issues
+1. Emoji/text encoding is broken across many files.
+   - Files: `src/App.tsx`, `src/components/Navigation.tsx`, `src/components/Profile.tsx`, `src/components/SettingsModal.tsx`, `src/lib/constants.ts`
+   - Effect: UI will render corrupted characters instead of proper icons.
+   - Fix: save files as UTF-8 and replace corrupted strings.
+
+2. `src/index.css` contains duplicated and conflicting layout rules.
+   - File: `src/index.css`
+   - Effect: harder maintenance and unpredictable cascade behavior.
+   - Fix: remove repeated media-query blocks and consolidate shared styles.
+
+3. Several components still rely heavily on inline styles.
+   - Files: `src/components/AuthScreen.tsx`, `src/components/Leaderboard.tsx`, `src/components/Profile.tsx`, `src/components/SettingsModal.tsx`, `src/components/LegalModal.tsx`
+   - Effect: harder reuse, harder theme changes, and inconsistent spacing.
+   - Fix: move repeated styling into CSS classes.
+
+4. `any` is still used in multiple places.
+   - Files: `src/components/SpinWheel.tsx`, `src/components/SettingsModal.tsx`, older patterns in app code
+   - Effect: weaker type safety and easier runtime mistakes.
+   - Fix: define explicit types for popup state, error objects, and RPC responses.
+
+5. Timers are not cleaned up on unmount.
+   - File: `src/components/SpinWheel.tsx`
+   - Effect: possible state updates after the component unmounts.
+   - Fix: store timer IDs in refs and clear them in cleanup logic.
+
+6. The spin button can still be vulnerable to race conditions.
+   - File: `src/components/SpinWheel.tsx`
+   - Effect: repeated clicks or rapid state changes could create inconsistent UI state.
+   - Fix: enforce a single-flight spin guard and disable the UI until the server confirms the result.
+
+7. Error handling is inconsistent.
+   - Files: `src/main.tsx`, `src/components/SettingsModal.tsx`, `src/components/AuthScreen.tsx`
+   - Effect: users may see raw errors or generic failures without recovery guidance.
+   - Fix: normalize error messages and show user-safe fallback states.
+
+8. Loading and fallback modes are mixed with production logic.
+   - Files: `src/App.tsx`, `src/components/Leaderboard.tsx`, `src/components/AuthScreen.tsx`
+   - Effect: harder to separate demo behavior from real backend behavior.
+   - Fix: isolate mock/demo data behind a clear development-only flag.
+
+9. The app shell depends on viewport checks in JavaScript in at least one place.
+   - File: older render patterns in `src/App.tsx`
+   - Effect: brittle responsive behavior and unnecessary rerenders.
+   - Fix: prefer CSS media queries or a dedicated viewport hook.
+
+10. Accessibility is incomplete.
+   - Files: modal and navigation components
+   - Effect: keyboard navigation, focus management, and screen reader support may be weak.
+   - Fix: add focus traps, Escape handling, and accessible labels.
+
+11. External audio is loaded directly from a third-party URL.
+   - File: `src/App.tsx`
+   - Effect: availability and privacy depend on an external CDN.
+   - Fix: host assets locally or use a trusted asset pipeline.
+
+12. The PWA cache policy is broad.
+   - File: `vite.config.ts`
+   - Effect: stale assets or unexpected caching behavior can be harder to debug.
+   - Fix: review caching strategy and define explicit expiration/update behavior for each asset type.
+
+13. The project still contains unused or legacy assets.
+   - Files: `src/assets/react.svg`, `src/assets/vite.svg`, `old_index.html`
+   - Effect: repository noise and confusion about the active app structure.
+   - Fix: archive or remove unused files if they are not needed.
+
+14. Legal content appears hardcoded and may not match actual policy requirements.
+   - File: `src/components/LegalModal.tsx`
+   - Effect: compliance risk if the service is public.
+   - Fix: have legal text reviewed and manage it as versioned content.
+
+Recommended Next Steps
+1. Move Supabase config to environment variables.
+2. Enforce RLS and storage rules in Supabase.
+3. Move spin outcome generation to trusted backend code.
+4. Fix UTF-8 corruption across the UI files.
+5. Clean up CSS duplication and remove inline style repetition.
+6. Add cleanup for timers and stronger TypeScript types.
