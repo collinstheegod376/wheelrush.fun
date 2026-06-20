@@ -1,39 +1,11 @@
--- Wheel Rush - Secure Database Schema
--- Run this in the Supabase SQL Editor (Dashboard -> SQL Editor)
--- If you already have the old schema, run the migration section at the bottom first.
+-- Wheel Rush - SQL Additions / Migration Patch
+-- Apply this after the base schema if you want only the changes introduced later.
 
--- 1. Create profiles table
-CREATE TABLE IF NOT EXISTS public.profiles (
-  id uuid REFERENCES auth.users NOT NULL PRIMARY KEY,
-  email text NOT NULL,
-  username text UNIQUE,
-  avatar_url text,
-  balance numeric DEFAULT 0 NOT NULL,
-  spins integer DEFAULT 0 NOT NULL,
-  losses integer DEFAULT 0 NOT NULL,
-  agreed_to_terms boolean DEFAULT FALSE NOT NULL,
-  last_spin_at timestamp with time zone,
-  created_at timestamp with time zone DEFAULT timezone('utc'::text, now()) NOT NULL
-);
+-- Add last_spin_at to profiles if it does not exist
+ALTER TABLE public.profiles
+ADD COLUMN IF NOT EXISTS last_spin_at timestamp with time zone;
 
--- 2. Enable Row Level Security
-ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
-
--- 3. RLS Policies (SECURE)
-CREATE POLICY "Users can view own profile"
-  ON public.profiles FOR SELECT
-  USING (auth.uid() = id);
-
-CREATE POLICY "Users can insert own profile"
-  ON public.profiles FOR INSERT
-  WITH CHECK (auth.uid() = id);
-
-CREATE POLICY "Users can update own profile"
-  ON public.profiles FOR UPDATE
-  USING (auth.uid() = id)
-  WITH CHECK (auth.uid() = id);
-
--- 4. Trigger to auto-create profile on sign-up
+-- Replace trigger with collision-resistant username generation
 CREATE OR REPLACE FUNCTION public.handle_new_user()
 RETURNS trigger AS $$
 DECLARE
@@ -64,7 +36,7 @@ CREATE TRIGGER on_auth_user_created
   AFTER INSERT ON auth.users
   FOR EACH ROW EXECUTE PROCEDURE public.handle_new_user();
 
--- 5. Server-side spin function
+-- Replace spin function with server-side cooldown, terms enforcement, and non-negative balance floor
 CREATE OR REPLACE FUNCTION public.spin_wheel()
 RETURNS jsonb
 LANGUAGE plpgsql
@@ -150,7 +122,6 @@ BEGIN
   END IF;
 
   v_outcome_value := (v_selected->>'value')::numeric;
-
   v_new_balance := v_balance;
   v_new_losses := v_losses;
 
@@ -188,10 +159,7 @@ BEGIN
 END;
 $$;
 
-REVOKE ALL ON public.profiles FROM anon, authenticated;
-GRANT SELECT, INSERT ON public.profiles TO authenticated;
-
--- 6. Secure leaderboard function
+-- Replace leaderboard function with row-limit clamp
 CREATE OR REPLACE FUNCTION public.get_leaderboard(row_limit integer DEFAULT 10)
 RETURNS jsonb
 LANGUAGE plpgsql
@@ -222,7 +190,7 @@ BEGIN
 END;
 $$;
 
--- 7. Secure profile update function
+-- Replace profile update function with validation
 CREATE OR REPLACE FUNCTION public.update_user_profile(
   new_username text DEFAULT NULL,
   new_avatar_url text DEFAULT NULL
@@ -257,31 +225,9 @@ BEGIN
 END;
 $$;
 
--- 8. Storage setup
-INSERT INTO storage.buckets (id, name, public)
-VALUES ('avatars', 'avatars', true)
-ON CONFLICT (id) DO NOTHING;
-
-DROP POLICY IF EXISTS "Avatar images are publicly accessible" ON storage.objects;
-DROP POLICY IF EXISTS "Users can upload their own avatar" ON storage.objects;
-DROP POLICY IF EXISTS "Users can update their own avatar" ON storage.objects;
-DROP POLICY IF EXISTS "Users can delete their own avatar" ON storage.objects;
-
-CREATE POLICY "Avatar images are publicly accessible"
-  ON storage.objects FOR SELECT
-  USING (bucket_id = 'avatars');
-
-CREATE POLICY "Users can upload their own avatar"
-  ON storage.objects FOR INSERT
-  WITH CHECK (bucket_id = 'avatars' AND auth.uid() = (storage.foldername(name))[1]::uuid);
-
-CREATE POLICY "Users can update their own avatar"
-  ON storage.objects FOR UPDATE
-  USING (bucket_id = 'avatars' AND auth.uid() = (storage.foldername(name))[1]::uuid);
-
-CREATE POLICY "Users can delete their own avatar"
-  ON storage.objects FOR DELETE
-  USING (bucket_id = 'avatars' AND auth.uid() = (storage.foldername(name))[1]::uuid);
+-- Permissions
+REVOKE ALL ON public.profiles FROM anon, authenticated;
+GRANT SELECT, INSERT ON public.profiles TO authenticated;
 
 REVOKE ALL ON FUNCTION public.spin_wheel() FROM PUBLIC;
 REVOKE ALL ON FUNCTION public.get_leaderboard(integer) FROM PUBLIC;
@@ -290,5 +236,3 @@ GRANT EXECUTE ON FUNCTION public.spin_wheel() TO authenticated;
 GRANT EXECUTE ON FUNCTION public.get_leaderboard(integer) TO authenticated;
 GRANT EXECUTE ON FUNCTION public.update_user_profile(text, text) TO authenticated;
 
--- Migration notes
--- If you already have the old schema, drop conflicting policies before re-running this file.

@@ -13,15 +13,15 @@ export const Profile: React.FC<ProfileProps> = ({ user, userUsername, displayLea
 
   return (
     <div className="profile-content animate-fade-in">
-      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginBottom: '32px' }}>
-        <div style={{ width: '80px', height: '80px', borderRadius: '50%', background: '#e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '32px', marginBottom: '16px', boxShadow: '0 8px 16px rgba(0,0,0,0.1)', overflow: 'hidden' }}>
+      <div className="profile-header">
+        <div className="profile-avatar-large">
           {user.avatar_url ? (
             <img src={user.avatar_url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
           ) : (
             user.email ? user.email[0].toUpperCase() : '?'
           )}
         </div>
-        <div style={{ fontSize: '24px', fontWeight: 800 }}>{userUsername}</div>
+        <div className="profile-username">{userUsername}</div>
       </div>
 
       <div className="stats-grid">

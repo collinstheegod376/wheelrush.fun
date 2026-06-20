@@ -1,6 +1,6 @@
 import React, { useRef } from 'react';
 import { OUTCOMES } from '../lib/constants';
-import type { UserStats } from '../types';
+import type { UserStats, PopupState } from '../types';
 import { supabase } from '../supabase';
 
 interface SpinWheelProps {
@@ -13,7 +13,7 @@ interface SpinWheelProps {
   currentRotation: number;
   setCurrentRotation: (rot: number) => void;
   playSound: (type: 'tick' | 'win' | 'loss' | 'mega') => void;
-  setPopup: (popup: any) => void;
+  setPopup: (popup: PopupState) => void;
 }
 
 export const SpinWheel: React.FC<SpinWheelProps> = ({
@@ -29,21 +29,43 @@ export const SpinWheel: React.FC<SpinWheelProps> = ({
   setPopup
 }) => {
   const wheelRef = useRef<HTMLDivElement>(null);
+  const tickIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const spinTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const cooldownTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const isMounted = useRef(true);
+
+  React.useEffect(() => {
+    isMounted.current = true;
+    return () => {
+      isMounted.current = false;
+      if (tickIntervalRef.current) clearInterval(tickIntervalRef.current);
+      if (spinTimeoutRef.current) clearTimeout(spinTimeoutRef.current);
+      if (cooldownTimeoutRef.current) clearTimeout(cooldownTimeoutRef.current);
+    };
+  }, []);
 
   const spinWheel = async () => {
     if (isSpinning || isCooldown || !user) return;
     setIsSpinning(true);
 
     let ticks = 0;
-    const tickInterval = setInterval(() => {
+    tickIntervalRef.current = setInterval(() => {
       playSound('tick');
       ticks++;
-      if (ticks > 15) clearInterval(tickInterval);
+      if (ticks > 15 && tickIntervalRef.current) {
+        clearInterval(tickIntervalRef.current);
+      }
     }, 200);
 
     try {
       const { data: serverResult, error } = await supabase.rpc('spin_wheel');
+      
       if (error) throw error;
+      
+      // Basic schema validation
+      if (!serverResult || typeof serverResult.outcome_index !== 'number' || typeof serverResult.new_balance !== 'number') {
+        throw new Error('Invalid response from server');
+      }
 
       const randomIndex = serverResult.outcome_index;
       const segmentDegree = 360 / OUTCOMES.length;
@@ -64,8 +86,10 @@ export const SpinWheel: React.FC<SpinWheelProps> = ({
         wheel.style.transform = `rotate(${targetDegree}deg)`;
       }
 
-      setTimeout(() => {
-        clearInterval(tickInterval);
+      spinTimeoutRef.current = setTimeout(() => {
+        if (!isMounted.current) return;
+        
+        if (tickIntervalRef.current) clearInterval(tickIntervalRef.current);
         setCurrentRotation(targetDegree % 360);
 
         if (wheel) {
@@ -108,13 +132,17 @@ export const SpinWheel: React.FC<SpinWheelProps> = ({
         
         // Start 1.5s cooldown
         setIsCooldown(true);
-        setTimeout(() => setIsCooldown(false), 1500);
+        cooldownTimeoutRef.current = setTimeout(() => {
+          if (isMounted.current) setIsCooldown(false);
+        }, 1500);
       }, 4000);
     } catch (err) {
-      console.error('Spin RPC failed', err);
-      clearInterval(tickInterval);
-      setIsSpinning(false);
-      setPopup({ show: true, type: 'loss', amount: 0, label: 'ERROR' });
+      console.error('Spin failed:', err);
+      if (isMounted.current) {
+        if (tickIntervalRef.current) clearInterval(tickIntervalRef.current);
+        setIsSpinning(false);
+        setPopup({ show: true, type: 'loss', amount: 0, label: 'ERROR' });
+      }
     }
   };
 

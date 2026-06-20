@@ -24,7 +24,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [isUpdating, setIsUpdating] = useState(false);
   const [msg, setMsg] = useState<{ text: string; type: 'success' | 'error' } | null>(null);
-  
+
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleUpdateUsername = async () => {
@@ -32,12 +32,16 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
     setIsUpdating(true);
     setMsg(null);
     try {
-      const { error } = await supabase.from('profiles').update({ username: newUsername }).eq('id', user.id);
+      const { error } = await supabase.rpc('update_user_profile', {
+        new_username: newUsername,
+        new_avatar_url: null
+      });
       if (error) throw error;
       setUser(prev => prev ? { ...prev, username: newUsername } : null);
       setMsg({ text: 'Username updated successfully!', type: 'success' });
-    } catch (err: any) {
-      setMsg({ text: err.message, type: 'error' });
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error ? err.message : String(err);
+      setMsg({ text: errorMessage, type: 'error' });
     } finally {
       setIsUpdating(false);
     }
@@ -55,8 +59,9 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
       if (error) throw error;
       setNewPassword('');
       setMsg({ text: 'Password updated successfully!', type: 'success' });
-    } catch (err: any) {
-      setMsg({ text: err.message, type: 'error' });
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error ? err.message : String(err);
+      setMsg({ text: errorMessage, type: 'error' });
     } finally {
       setIsUpdating(false);
     }
@@ -66,7 +71,18 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
     const file = e.target.files?.[0];
     if (!file) return;
 
-    // Instant Preview
+    const MAX_SIZE = 2 * 1024 * 1024;
+    if (file.size > MAX_SIZE) {
+      setMsg({ text: 'File size must be under 2MB', type: 'error' });
+      return;
+    }
+
+    const validTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+    if (!validTypes.includes(file.type)) {
+      setMsg({ text: 'Valid formats: JPG, PNG, GIF, WebP', type: 'error' });
+      return;
+    }
+
     const localUrl = URL.createObjectURL(file);
     setPreviewUrl(localUrl);
     setUploadStatus('uploading');
@@ -77,44 +93,39 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
       const fileName = `${user.id}-${Date.now()}.${fileExt}`;
       const filePath = `${user.id}/${fileName}`;
 
-      // 1. Upload file
       const { error: uploadError } = await supabase.storage
         .from('avatars')
         .upload(filePath, file);
 
       if (uploadError) throw uploadError;
 
-      // 2. Get Public URL
       const { data: { publicUrl } } = supabase.storage
         .from('avatars')
         .getPublicUrl(filePath);
 
-      // 3. Update Profile
-      const { error: updateError } = await supabase
-        .from('profiles')
-        .update({ avatar_url: publicUrl })
-        .eq('id', user.id);
+      const { error: updateError } = await supabase.rpc('update_user_profile', {
+        new_username: null,
+        new_avatar_url: publicUrl
+      });
 
       if (updateError) throw updateError;
 
       setUser(prev => prev ? { ...prev, avatar_url: publicUrl } : null);
       setUploadStatus('done');
-      
-      // Clear "Done" after 3 seconds
       setTimeout(() => setUploadStatus('idle'), 3000);
-      
-    } catch (err: any) {
-      setMsg({ text: err.message, type: 'error' });
-      setPreviewUrl(null); // Revert preview on error
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error ? err.message : String(err);
+      setMsg({ text: errorMessage, type: 'error' });
+      setPreviewUrl(null);
       setUploadStatus('idle');
     }
   };
 
   return (
-    <div className="tab-pane animate-fade-in" style={{ maxWidth: '800px', margin: '0 auto', padding: '24px' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '32px' }}>
-        <h1 style={{ fontSize: '32px', fontWeight: 900 }}>Settings</h1>
-        <button className="btn" style={{ background: '#fee2e2', color: '#ef4444' }} onClick={handleLogout}>Sign Out</button>
+    <div className="tab-pane animate-fade-in">
+      <div className="settings-header">
+        <h1 className="settings-title">Settings</h1>
+        <button className="btn btn-danger" onClick={handleLogout}>Sign Out</button>
       </div>
 
       <div className="settings-tabs-container">
@@ -124,30 +135,26 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
           <button className={`sub-tab ${activeSubTab === 'game' ? 'active' : ''}`} onClick={() => setActiveSubTab('game')}>Game & Audio</button>
         </div>
 
-        <div className="settings-tab-content card" style={{ padding: '32px' }}>
+        <div className="settings-tab-content card settings-card">
           {msg && (
-            <div className={`status-msg ${msg.type}`} style={{ marginBottom: '24px', padding: '12px', borderRadius: '8px' }}>
+            <div className={`status-msg ${msg.type} settings-status`}>
               {msg.type === 'success' ? '✅ ' : '❌ '}{msg.text}
             </div>
           )}
 
           {activeSubTab === 'account' && (
             <div className="animate-fade-in">
-              <div style={{ display: 'flex', alignItems: 'center', gap: '24px', marginBottom: '32px' }}>
-                <div style={{ position: 'relative' }}>
-                  <div style={{ width: '100px', height: '100px', borderRadius: '50%', overflow: 'hidden', position: 'relative', border: '4px solid white', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}>
+              <div className="settings-account-row">
+                <div className="settings-avatar-wrap">
+                  <div className="settings-avatar">
                     {previewUrl || user.avatar_url ? (
-                      <img src={previewUrl || user.avatar_url || ''} alt="Profile" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                      <img src={previewUrl || user.avatar_url || ''} alt="Profile" className="settings-avatar-img" />
                     ) : (
-                      <div style={{ width: '100%', height: '100%', background: '#f1f5f9', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '32px' }}>👤</div>
+                      <div className="settings-avatar-fallback">👤</div>
                     )}
-                    
+
                     {uploadStatus !== 'idle' && (
-                      <div style={{ 
-                        position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', 
-                        background: 'rgba(0,0,0,0.6)', display: 'flex', flexDirection: 'column', 
-                        alignItems: 'center', justifyContent: 'center', color: 'white', fontSize: '12px', fontWeight: 'bold' 
-                      }}>
+                      <div className="settings-upload-overlay">
                         {uploadStatus === 'uploading' ? (
                           <>
                             <div className="spinner-small" style={{ marginBottom: '4px' }}></div>
@@ -162,9 +169,9 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                       </div>
                     )}
                   </div>
-                  <button 
+                  <button
                     onClick={() => fileInputRef.current?.click()}
-                    style={{ position: 'absolute', bottom: '0', right: '0', background: 'var(--primary-color)', color: 'white', border: 'none', width: '32px', height: '32px', borderRadius: '50%', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 2px 6px rgba(0,0,0,0.2)', zIndex: 10 }}
+                    className="settings-upload-btn"
                     disabled={uploadStatus === 'uploading'}
                   >
                     ✏️
@@ -180,18 +187,18 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
               <div className="form-group">
                 <label className="form-label">Display Username</label>
                 <div style={{ display: 'flex', gap: '12px' }}>
-                  <input 
-                    type="text" 
-                    className="form-input" 
-                    value={newUsername} 
-                    onChange={e => setNewUsername(e.target.value)} 
+                  <input
+                    type="text"
+                    className="form-input"
+                    value={newUsername}
+                    onChange={e => setNewUsername(e.target.value)}
                     style={{ flex: 1 }}
                   />
                   <button className="btn btn-primary" onClick={handleUpdateUsername} disabled={isUpdating || newUsername === user.username}>
                     Update
                   </button>
                 </div>
-                <p style={{ fontSize: '13px', color: 'var(--text-light)', marginTop: '8px' }}>This will be visible on the leaderboard.</p>
+                <p className="settings-helper">This will be visible on the leaderboard.</p>
               </div>
             </div>
           )}
@@ -201,12 +208,12 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
               <div className="form-group">
                 <label className="form-label">New Password</label>
                 <div style={{ display: 'flex', gap: '12px' }}>
-                  <input 
-                    type="password" 
-                    className="form-input" 
+                  <input
+                    type="password"
+                    className="form-input"
                     placeholder="Enter new password"
-                    value={newPassword} 
-                    onChange={e => setNewPassword(e.target.value)} 
+                    value={newPassword}
+                    onChange={e => setNewPassword(e.target.value)}
                     style={{ flex: 1 }}
                   />
                   <button className="btn btn-primary" onClick={handleUpdatePassword} disabled={isUpdating || !newPassword}>
@@ -214,7 +221,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                   </button>
                 </div>
               </div>
-              <div style={{ marginTop: '24px', padding: '16px', background: '#f8fafc', borderRadius: '12px', fontSize: '14px', color: '#64748b' }}>
+              <div className="settings-tip">
                 💡 Tip: Use a strong password to keep your virtual billions safe!
               </div>
             </div>
@@ -224,15 +231,15 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
             <div className="animate-fade-in">
               <div className="setting-row">
                 <div>
-                  <div style={{ fontWeight: 700 }}>🎶 Background Music</div>
+                  <div className="settings-toggle-label">🎶 Background Music</div>
                   <div style={{ fontSize: '13px', color: 'var(--text-light)', marginTop: '4px' }}>Atmospheric soundtrack</div>
                 </div>
                 <label className="switch"><input type="checkbox" checked={bgMusic} onChange={e => setBgMusic(e.target.checked)} /><span className="slider"></span></label>
               </div>
-              
+
               <div className="setting-row">
                 <div>
-                  <div style={{ fontWeight: 700 }}>🔔 Sound Effects</div>
+                  <div className="settings-toggle-label">🔔 Sound Effects</div>
                   <div style={{ fontSize: '13px', color: 'var(--text-light)', marginTop: '4px' }}>Spin ticks & win dings</div>
                 </div>
                 <label className="switch"><input type="checkbox" checked={sfx} onChange={e => setSfx(e.target.checked)} /><span className="slider"></span></label>

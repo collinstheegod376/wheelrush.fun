@@ -43,15 +43,44 @@ export default function App() {
   const userUsername = useMemo(() => user?.username || 'Unknown', [user?.username]);
 
   const displayLeaderboard = useMemo(() => {
-    let list = [...leaderboard];
+    const list = [...leaderboard];
     if (user && user.balance >= 0 && !list.find(l => l.username === userUsername)) {
-      list.push({ rank: 999, username: userUsername, balance: user.balance });
+      list.push({ rank: 999, username: userUsername, avatar_url: user.avatar_url, balance: user.balance });
     }
     return list.sort((a, b) => b.balance - a.balance).map((item, index) => ({
       ...item,
       rank: index + 1
     }));
   }, [leaderboard, user, userUsername]);
+
+  async function fetchLeaderboard() {
+    try {
+      const { data, error } = await supabase.rpc('get_leaderboard', { row_limit: 10 });
+      if (data && !error) setLeaderboard(data);
+    } catch (e) {
+      console.error('Failed to fetch leaderboard', e);
+    }
+  }
+
+  const fetchUserData = useCallback(async (id: string, email: string) => {
+    try {
+      const { data } = await supabase.from('profiles').select('*').eq('id', id).single();
+      if (data) {
+        setUser({
+          id,
+          email,
+          username: data.username || email.split('@')[0],
+          avatar_url: data.avatar_url,
+          balance: data.balance,
+          spins: data.spins,
+          losses: data.losses
+        });
+        fetchLeaderboard();
+      }
+    } catch (e) {
+      console.error('Fetch user failed', e);
+    }
+  }, []);
 
   // Auth initialization
   useEffect(() => {
@@ -72,43 +101,7 @@ export default function App() {
     });
 
     return () => subscription.unsubscribe();
-  }, []);
-
-  // Leaderboard fetching
-  const fetchLeaderboard = useCallback(async () => {
-    try {
-      const { data, error } = await supabase.rpc('get_leaderboard', { row_limit: 10 });
-      if (data && !error) setLeaderboard(data);
-    } catch (e) {
-      console.error('Failed to fetch leaderboard', e);
-    }
-  }, []);
-
-  useEffect(() => {
-    if (user) fetchLeaderboard();
-  }, [user?.balance, fetchLeaderboard]);
-
-  const fetchUserData = async (id: string, email: string) => {
-    try {
-      const { data } = await supabase.from('profiles').select('*').eq('id', id).single();
-      if (data) {
-        setUser({ 
-          id, 
-          email, 
-          username: data.username || email.split('@')[0], 
-          avatar_url: data.avatar_url,
-          balance: data.balance, 
-          spins: data.spins, 
-          losses: data.losses 
-        });
-      } else {
-        // Fallback or create logic handled by trigger, but we could add manual fallback here
-      }
-    } catch (e) {
-      console.error('Fetch user failed', e);
-    }
-  };
-
+  }, [fetchUserData]);
   const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault();
     setAuthError('');
@@ -141,11 +134,12 @@ export default function App() {
         const { error: signInError } = await supabase.auth.signInWithPassword({ email, password });
         if (signInError) throw signInError;
       }
-    } catch (err: any) {
-      if (err.message === 'Invalid login credentials') {
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error ? err.message : String(err);
+      if (errorMessage === 'Invalid login credentials') {
         setAuthError('Incorrect password or account does not exist');
       } else {
-        setAuthError(err.message);
+        setAuthError(errorMessage);
       }
     } finally {
       setIsProcessingAuth(false);
@@ -160,7 +154,8 @@ export default function App() {
   // Sound logic
   useEffect(() => {
     if (!bgAudioRef.current) {
-      bgAudioRef.current = new Audio('https://cdn.pixabay.com/download/audio/2022/05/16/audio_b287898516.mp3');
+      // No bundled background track is currently shipped, so keep this silent until one is added.
+      bgAudioRef.current = new Audio();
       bgAudioRef.current.loop = true;
       bgAudioRef.current.volume = 0.15;
     }
@@ -176,9 +171,12 @@ export default function App() {
     if (!sfx) return;
     try {
       if (!audioContextRef.current) {
-        audioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)();
+        const AudioCtx = window.AudioContext || (window as unknown as typeof window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+        if (!AudioCtx) return;
+        audioContextRef.current = new AudioCtx();
       }
       const ctx = audioContextRef.current;
+      if (!ctx) return;
       const osc = ctx.createOscillator();
       const gain = ctx.createGain();
       osc.connect(gain);
@@ -216,18 +214,20 @@ export default function App() {
         gain.gain.linearRampToValueAtTime(0, now + 1.0);
         osc.start(now); osc.stop(now + 1.0);
       }
-    } catch (e) {}
+    } catch (e) {
+      console.error('Sound playback failed', e);
+    }
   }, [sfx]);
 
   // Loading Splash
   if (isLoading) {
     return (
-      <div className="auth-wrapper" style={{ background: '#ffffff' }}>
-        <div style={{ textAlign: 'center' }}>
-          <h1 className="text-gradient" style={{ fontSize: '36px', fontWeight: 900 }}>Wheel Rush</h1>
-          <div style={{ marginTop: '24px', display: 'flex', justifyContent: 'center', gap: '8px' }}>
+      <div className="auth-wrapper app-loading">
+        <div className="app-loading-inner">
+          <h1 className="text-gradient auth-title">Wheel Rush</h1>
+          <div className="app-loading-dots">
             {[0, 1, 2].map(i => (
-              <div key={i} style={{ width: '10px', height: '10px', borderRadius: '50%', background: '#2563eb', animation: `dotPulse 1.2s ease-in-out ${i * 0.2}s infinite` }} />
+              <div key={i} className="app-loading-dot" style={{ animation: `dotPulse 1.2s ease-in-out ${i * 0.2}s infinite` }} />
             ))}
           </div>
         </div>
