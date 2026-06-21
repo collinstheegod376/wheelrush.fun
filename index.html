@@ -49,6 +49,42 @@
   </head>
   <body>
     <div id="root"></div>
+    <!--
+      Force-update script: runs BEFORE the app JS bundle.
+      Even if the old SW is serving a cached index.html, the browser
+      still re-evaluates inline scripts. This triggers an update check,
+      and if a new SW is waiting, activates it and reloads.
+    -->
+    <script>
+      if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.getRegistration().then(function(reg) {
+          if (!reg) return;
+          // Force the browser to check the server for a new sw.js
+          reg.update().catch(function() {});
+          // If a new SW is already waiting, activate it now
+          if (reg.waiting) {
+            reg.waiting.postMessage({ type: 'SKIP_WAITING' });
+            location.reload();
+            return;
+          }
+          // Listen for a new SW that arrives while the page is open
+          reg.addEventListener('updatefound', function() {
+            var newWorker = reg.installing;
+            if (!newWorker) return;
+            newWorker.addEventListener('statechange', function() {
+              if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                newWorker.postMessage({ type: 'SKIP_WAITING' });
+                location.reload();
+              }
+            });
+          });
+        });
+        // Also listen for the controlling SW to change (another tab triggered it)
+        navigator.serviceWorker.addEventListener('controllerchange', function() {
+          location.reload();
+        });
+      }
+    </script>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
