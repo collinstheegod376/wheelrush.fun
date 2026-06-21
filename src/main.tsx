@@ -4,6 +4,7 @@ import { createRoot } from 'react-dom/client'
 import { registerSW } from 'virtual:pwa-register'
 import './index.css'
 import App from './App.tsx'
+import './registerServiceWorker' // ensure service worker registration runs
 
 // Register the service worker with auto-update.
 // When a new version is deployed, this will automatically activate
