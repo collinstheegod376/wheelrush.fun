@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { memo } from 'react';
 import { formatMoney } from '../lib/utils';
 import type { UserStats, LeaderboardEntry } from '../types';
 
@@ -8,7 +8,7 @@ interface ProfileProps {
   displayLeaderboard: LeaderboardEntry[];
 }
 
-export const Profile: React.FC<ProfileProps> = ({ user, userUsername, displayLeaderboard }) => {
+const ProfileComponent: React.FC<ProfileProps> = ({ user, userUsername, displayLeaderboard }) => {
   const globalRank = displayLeaderboard.find(l => l.username === userUsername)?.rank || '-';
 
   return (
@@ -49,3 +49,6 @@ export const Profile: React.FC<ProfileProps> = ({ user, userUsername, displayLea
     </div>
   );
 };
+
+export const Profile = memo(ProfileComponent);
+

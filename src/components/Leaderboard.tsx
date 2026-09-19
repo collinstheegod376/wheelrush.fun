@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { memo } from 'react';
 import { formatCompact } from '../lib/utils';
 import type { LeaderboardEntry } from '../types';
 
@@ -7,7 +7,7 @@ interface LeaderboardProps {
   userUsername: string;
 }
 
-export const Leaderboard: React.FC<LeaderboardProps> = ({ displayLeaderboard, userUsername }) => {
+const LeaderboardComponent: React.FC<LeaderboardProps> = ({ displayLeaderboard, userUsername }) => {
   return (
     <div className="lb-container animate-fade-in">
       <h1 className="text-gradient lb-header">Leaderboard</h1>
@@ -34,3 +34,6 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({ displayLeaderboard, us
     </div>
   );
 };
+
+export const Leaderboard = memo(LeaderboardComponent);
+

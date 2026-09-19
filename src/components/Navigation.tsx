@@ -1,11 +1,11 @@
-import React from 'react';
+import React, { memo } from 'react';
 
 interface NavigationProps {
   activeTab: 'home' | 'leaderboard' | 'profile' | 'settings';
   setActiveTab: (tab: 'home' | 'leaderboard' | 'profile' | 'settings') => void;
 }
 
-export const Navigation: React.FC<NavigationProps> = ({ activeTab, setActiveTab }) => {
+const NavigationComponent: React.FC<NavigationProps> = ({ activeTab, setActiveTab }) => {
   return (
     <div className="app-sidebar">
       <div className="sidebar-logo">
@@ -32,3 +32,5 @@ export const Navigation: React.FC<NavigationProps> = ({ activeTab, setActiveTab 
     </div>
   );
 };
+
+export const Navigation = memo(NavigationComponent);

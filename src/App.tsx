@@ -53,14 +53,14 @@ export default function App() {
     }));
   }, [leaderboard, user, userUsername]);
 
-  async function fetchLeaderboard() {
+  const fetchLeaderboard = useCallback(async () => {
     try {
       const { data, error } = await supabase.rpc('get_leaderboard', { row_limit: 10 });
       if (data && !error) setLeaderboard(data);
     } catch (e) {
       console.error('Failed to fetch leaderboard', e);
     }
-  }
+  }, []);
 
   const fetchUserData = useCallback(async (id: string, email: string) => {
     try {
@@ -80,7 +80,14 @@ export default function App() {
     } catch (e) {
       console.error('Fetch user failed', e);
     }
-  }, []);
+  }, [fetchLeaderboard]);
+
+  const handleSelectTab = useCallback((tab: 'home' | 'leaderboard' | 'profile' | 'settings') => {
+    setActiveTab(tab);
+    if (tab === 'leaderboard') {
+      fetchLeaderboard();
+    }
+  }, [fetchLeaderboard]);
 
   // Auth initialization
   useEffect(() => {
@@ -160,9 +167,9 @@ export default function App() {
       bgAudioRef.current.volume = 0.15;
     }
     
-    if (bgMusic) {
+    if (bgMusic && bgAudioRef.current.src) {
       bgAudioRef.current.play().catch(() => {});
-    } else {
+    } else if (bgAudioRef.current) {
       bgAudioRef.current.pause();
     }
   }, [bgMusic]);
@@ -177,6 +184,9 @@ export default function App() {
       }
       const ctx = audioContextRef.current;
       if (!ctx) return;
+      if (ctx.state === 'suspended') {
+        ctx.resume().catch(() => {});
+      }
       const osc = ctx.createOscillator();
       const gain = ctx.createGain();
       osc.connect(gain);
@@ -251,7 +261,7 @@ export default function App() {
 
   return (
     <>
-      <Navigation activeTab={activeTab} setActiveTab={setActiveTab} />
+      <Navigation activeTab={activeTab} setActiveTab={handleSelectTab} />
 
       <div className="app-main">
         <div className="top-bar">

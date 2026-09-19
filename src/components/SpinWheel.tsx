@@ -1,4 +1,4 @@
-import React, { useRef } from 'react';
+import React, { useRef, memo, useEffect } from 'react';
 import { OUTCOMES } from '../lib/constants';
 import type { UserStats, PopupState } from '../types';
 import { supabase } from '../supabase';
@@ -16,7 +16,35 @@ interface SpinWheelProps {
   setPopup: (popup: PopupState) => void;
 }
 
-export const SpinWheel: React.FC<SpinWheelProps> = ({
+const SEGMENT_ANGLE = 360 / OUTCOMES.length;
+
+// Precompute static SVG sector geometry at module load time to avoid repetitive trigonometry and string allocations on each render
+const PRECOMPUTED_SEGMENTS = OUTCOMES.map((outcome, i) => {
+  const startAngle = i * SEGMENT_ANGLE;
+  const endAngle = startAngle + SEGMENT_ANGLE;
+
+  const x1 = 50 + 50 * Math.cos((Math.PI * startAngle) / 180);
+  const y1 = 50 + 50 * Math.sin((Math.PI * startAngle) / 180);
+  const x2 = 50 + 50 * Math.cos((Math.PI * endAngle) / 180);
+  const y2 = 50 + 50 * Math.sin((Math.PI * endAngle) / 180);
+
+  const d = `M50,50 L${x1},${y1} A50,50 0 0,1 ${x2},${y2} Z`;
+
+  const midAngle = startAngle + SEGMENT_ANGLE / 2;
+  const textX = 50 + 35 * Math.cos((Math.PI * midAngle) / 180);
+  const textY = 50 + 35 * Math.sin((Math.PI * midAngle) / 180);
+  const textRotation = ((midAngle + 90) % 360) > 180 ? midAngle - 90 : midAngle + 90;
+
+  return {
+    ...outcome,
+    d,
+    textX,
+    textY,
+    textRotation,
+  };
+});
+
+const SpinWheelComponent: React.FC<SpinWheelProps> = ({
   user,
   setUser,
   isSpinning,
@@ -34,7 +62,7 @@ export const SpinWheel: React.FC<SpinWheelProps> = ({
   const cooldownTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const isMounted = useRef(true);
 
-  React.useEffect(() => {
+  useEffect(() => {
     isMounted.current = true;
     return () => {
       isMounted.current = false;
@@ -68,11 +96,10 @@ export const SpinWheel: React.FC<SpinWheelProps> = ({
       }
 
       const randomIndex = serverResult.outcome_index;
-      const segmentDegree = 360 / OUTCOMES.length;
       const extraSpins = 5 * 360;
       const offset = Math.random() * 30 - 15;
 
-      const targetModulo = 360 - (randomIndex * segmentDegree);
+      const targetModulo = 360 - (randomIndex * SEGMENT_ANGLE);
       const currentRemainder = currentRotation % 360;
 
       let degreesToSpin = targetModulo - currentRemainder;
@@ -152,42 +179,25 @@ export const SpinWheel: React.FC<SpinWheelProps> = ({
         <div className="wheel-pointer"></div>
         <div className="wheel" ref={wheelRef} style={{ transform: `rotate(${currentRotation}deg)` }}>
           <svg width="100%" height="100%" viewBox="0 0 100 100" style={{ transform: 'rotate(-112.5deg)', overflow: 'visible' }}>
-            {OUTCOMES.map((outcome, i) => {
-              const angle = 360 / OUTCOMES.length;
-              const startAngle = i * angle;
-              const endAngle = startAngle + angle;
-
-              const x1 = 50 + 50 * Math.cos(Math.PI * startAngle / 180);
-              const y1 = 50 + 50 * Math.sin(Math.PI * startAngle / 180);
-              const x2 = 50 + 50 * Math.cos(Math.PI * endAngle / 180);
-              const y2 = 50 + 50 * Math.sin(Math.PI * endAngle / 180);
-
-              const d = `M50,50 L${x1},${y1} A50,50 0 0,1 ${x2},${y2} Z`;
-
-              const midAngle = startAngle + (angle / 2);
-              const textX = 50 + 35 * Math.cos(Math.PI * midAngle / 180);
-              const textY = 50 + 35 * Math.sin(Math.PI * midAngle / 180);
-
-              return (
-                <g key={i}>
-                  <path d={d} fill={outcome.color} stroke="#2563eb" strokeWidth="0.5" />
-                  <text
-                    x={textX}
-                    y={textY}
-                    fill={outcome.textColor}
-                    fontSize="4.5"
-                    fontWeight="900"
-                    fontFamily="Outfit"
-                    textAnchor="middle"
-                    alignmentBaseline="middle"
-                    transform={`rotate(${((midAngle + 90) % 360) > 180 ? midAngle - 90 : midAngle + 90}, ${textX}, ${textY})`}
-                  >
-                    {outcome.icon && <tspan x={textX} dy="-3">{outcome.icon}</tspan>}
-                    <tspan x={textX} dy={outcome.icon ? "5" : "0"}>{outcome.label}</tspan>
-                  </text>
-                </g>
-              );
-            })}
+            {PRECOMPUTED_SEGMENTS.map((outcome, i) => (
+              <g key={i}>
+                <path d={outcome.d} fill={outcome.color} stroke="#2563eb" strokeWidth="0.5" />
+                <text
+                  x={outcome.textX}
+                  y={outcome.textY}
+                  fill={outcome.textColor}
+                  fontSize="4.5"
+                  fontWeight="900"
+                  fontFamily="Outfit"
+                  textAnchor="middle"
+                  alignmentBaseline="middle"
+                  transform={`rotate(${outcome.textRotation}, ${outcome.textX}, ${outcome.textY})`}
+                >
+                  {outcome.icon && <tspan x={outcome.textX} dy="-3">{outcome.icon}</tspan>}
+                  <tspan x={outcome.textX} dy={outcome.icon ? "5" : "0"}>{outcome.label}</tspan>
+                </text>
+              </g>
+            ))}
           </svg>
           <div className="wheel-center">SPIN</div>
         </div>
@@ -199,3 +209,5 @@ export const SpinWheel: React.FC<SpinWheelProps> = ({
     </div>
   );
 };
+
+export const SpinWheel = memo(SpinWheelComponent);

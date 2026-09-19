@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect, memo } from 'react';
 import { supabase } from '../supabase';
 import type { UserStats } from '../types';
 
@@ -14,7 +14,7 @@ interface SettingsModalProps {
 
 type SubTab = 'account' | 'security' | 'game';
 
-export const SettingsModal: React.FC<SettingsModalProps> = ({
+const SettingsModalComponent: React.FC<SettingsModalProps> = ({
   user, setUser, bgMusic, setBgMusic, sfx, setSfx, handleLogout
 }) => {
   const [activeSubTab, setActiveSubTab] = useState<SubTab>('account');
@@ -67,6 +67,12 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
     }
   };
 
+  useEffect(() => {
+    return () => {
+      if (previewUrl) URL.revokeObjectURL(previewUrl);
+    };
+  }, [previewUrl]);
+
   const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -84,7 +90,10 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
     }
 
     const localUrl = URL.createObjectURL(file);
-    setPreviewUrl(localUrl);
+    setPreviewUrl(prev => {
+      if (prev) URL.revokeObjectURL(prev);
+      return localUrl;
+    });
     setUploadStatus('uploading');
     setMsg(null);
 
@@ -251,3 +260,5 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
     </div>
   );
 };
+
+export const SettingsModal = memo(SettingsModalComponent);
