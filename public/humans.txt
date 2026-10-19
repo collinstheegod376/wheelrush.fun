@@ -1,0 +1,13 @@
+/* TEAM */
+Developer & Creator: Promised Killua
+Portfolio: https://www.promisedkillua.sbs/
+GitHub: https://github.com/collinstheegod376
+Twitter / X: https://x.com/nerfed_killua
+Telegram: https://t.me/nerfed_killua
+Location: Lagos, Nigeria
+
+/* SITE */
+Site Name: Wheel Rush
+Site URL: https://wheelrush.fun/
+Technology: React, TypeScript, Vite, Tailwind CSS, Web Audio API, Supabase, PWA
+Description: Free-to-play spin-to-win prize wheel game with real-time global leaderboard.

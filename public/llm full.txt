@@ -19,15 +19,18 @@ Primary SEO goals
 
 Current metadata
 - Title: Wheel Rush - Spin the Wheel & Win Billions | Free Online Casino Game
-- Meta description: Spin the Wheel Rush prize wheel to win virtual cash from $500K to $10 Billion. Free-to-play spin-to-win game with a global leaderboard.
+- Meta description: Spin the Wheel Rush prize wheel to win virtual cash from $500K to $10 Billion. Free-to-play spin-to-win game with a global leaderboard. Created by Promised Killua.
+- Creator / Developer: Promised Killua (https://www.promisedkillua.sbs/)
 - Canonical: https://wheelrush.fun/
 - Robots: index, follow
+- Author & me links: points to https://www.promisedkillua.sbs/, https://github.com/collinstheegod376, https://x.com/nerfed_killua
 - OG/Twitter images point to `https://wheelrush.fun/icon.png`
 
 Structured data
-- `WebApplication` JSON-LD is embedded in `index.html`
+- `WebApplication` JSON-LD is embedded in `index.html` with nested author & creator referencing `Person`
+- `Person` schema for Promised Killua (portfolio: https://www.promisedkillua.sbs/)
 - Category: `GameApplication`
-- Genre: Casino
+- Genre: Casino, Arcade, Casual Game
 - Offer price: 0 USD
 
 SEO risk areas
